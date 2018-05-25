@@ -3,18 +3,56 @@ Script for chatting with a trained chatbot model
 """
 import datetime
 from os import path
-
-import general_utils
+import os
 import chat_command_handler
 from chat_settings import ChatSettings
 from chatbot_model import ChatbotModel
 from vocabulary import Vocabulary
+from hparams import Hparams
+
+
+
+def initialize_session(mode):
+    """Helper method for initializing a chatbot training session
+    by loading the model dir from command line args and reading the hparams in
+
+    Args:
+        mode: "train" or "chat"
+    """
+
+
+    # Make sure script was run in the correct working directory
+    models_dir = "models"
+    datasets_dir = "datasets"
+    if not os.path.isdir(models_dir) or not os.path.isdir(datasets_dir):
+        raise NotADirectoryError(
+            "Cannot find models directory 'models' and datasets directory 'datasets' within working directory '{0}'. Make sure to set the working directory to the chatbot root folder."
+            .format(os.getcwd()))
+
+    checkpointfile = r'models\training_data_in_database\20180520_144933\best_weights_training.ckpt'
+    # Make sure checkpoint file & hparams file exists
+    checkpoint_filepath = os.path.relpath(checkpointfile)
+    if not os.path.isfile(checkpoint_filepath + ".meta"):
+        raise FileNotFoundError(
+            "The checkpoint file '{0}' was not found.".format(os.path.realpath(checkpoint_filepath)))
+    # Get the checkpoint model directory
+    checkpoint = os.path.basename(checkpoint_filepath)
+    model_dir = os.path.dirname(checkpoint_filepath)
+    dataset_name = os.path.basename(os.path.dirname(model_dir))
+    dataset_dir = os.path.join(datasets_dir, dataset_name)
+
+
+    # Load the hparams from file
+    hparams_filepath = os.path.join(model_dir, "hparams.json")
+    hparams = Hparams.load(hparams_filepath)
+
+    return dataset_dir, model_dir, hparams, checkpoint
 
 class ChatSession:
 
     def __init__(self):
         #Read the hyperparameters and configure paths
-        _, model_dir, hparams, checkpoint = general_utils.initialize_session("chat")
+        _, model_dir, hparams, checkpoint = initialize_session("chat")
 
         #Load the vocabulary
         print()
