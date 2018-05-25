@@ -286,10 +286,10 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-/seq2seq-chatbot/models/cornell_movie_dialog/trained_model_v1
+/models/cornell_movie_dialog/trained_model_v1
 .vscode/settings.json
 .vscode/launch.json
-/seq2seq-chatbot/models/cornell_movie_dialog/20180329_030159
-/seq2seq-chatbot/models/training_data_in_database/20180520_144933
-/seq2seq-chatbot/datasets/**
-/seq2seq-chatbot/word_embed_clean.vec
+/models/cornell_movie_dialog/20180329_030159
+/models/training_data_in_database/20180520_144933
+/datasets/**
+/word_embed_clean.vec
