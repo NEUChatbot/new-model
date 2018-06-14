@@ -1,20 +1,21 @@
-import http.server
 import os
+import time
 import queue
+import train
+import requests
 import datetime
 import threading
-import time
+import http.server
+from os import path
+from hparams import Hparams
 from cgi import parse_header
 from urllib.parse import parse_qs
-
-import train
-from os import path
 from chat_settings import ChatSettings
-from hparams import Hparams
+
 
 waiting_queue = queue.Queue()
 chat_setting = None
-result_queue = queue.Queue()
+result_queue = dict()
 
 
 class Struct():
@@ -35,8 +36,24 @@ class ServerClass(http.server.CGIHTTPRequestHandler):
             print('chat :{} {}'.format(postvars['id'], postvars['question']))
 
             waiting_queue.put(Struct(postvars['id'][0], postvars['question'][0]))
+            start_time = time.time()
+            while time.time() - start_time < 10 and result_queue.get(postvars['id'][0], None) is None:
+                pass
+            response = result_queue.pop(postvars['id'][0], 'server timeout :(')
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(response[1].encode())
         else:
-            return
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write('wrong')
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write('ok'.encode())
+
 
 class ChatServer(object):
     def __init__(self):
@@ -56,15 +73,22 @@ class ChatServer(object):
         self.train_thred.start()
         self.handle_thread = threading.Thread(target=self.handleResult)
         self.handle_thread.start()
-        self.server = http.server.HTTPServer(('127.0.0.1', 8000), ServerClass)
+        try:
+            myip = requests.get('http://fun.alphamj.cn/wx/registered').content.decode()
+        except:
+            myip = '127.0.0.1'
+        print('listen {}:4321'.format(myip))
+        self.server = http.server.HTTPServer((myip, 4321), ServerClass)
         print('server init finish')
 
     def handleResult(self):
-        while True:
-            if not result_queue.empty():
-                r = result_queue.get()
-                print('{}: {}'.format(r.id, r.data[1]))
-            time.sleep(0.01)
+        pass
+        # while True:
+        #     if not result_queue.empty():
+        #         r = result_queue.get()
+        #         print('{}: {}'.format(r.id, r.data[1]))
+        #         requests.post('http://fun.alphamj.cn/wx/responsechat', data={'id': r.id, 'content': r.data[1]})
+        #     time.sleep(0.01)
 
 
 if __name__ == '__main__':

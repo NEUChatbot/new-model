@@ -112,7 +112,7 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
                         with model.as_infer():
                             result = model.chat(task.data, chat_setting)
                             print('result: {}'.format(result))
-                            result_queue.put(Struct(task.id, result))
+                            result_queue[task.id] = result
 
                 if batch_counter == hparams.training_hparams.stats_after_n_batches or batch_index == (
                         training_dataset_size // hparams.training_hparams.batch_size):
