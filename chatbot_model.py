@@ -66,10 +66,10 @@ class ChatbotModel(object):
 
         tf.contrib.learn.ModeKeys.validate(self.mode)
 
-        if self.mode == tf.contrib.learn.ModeKeys.TRAIN or self.model_hparams.beam_width is None:
+        if self.model_hparams.beam_width is None:
             self.beam_width = 0
         else:
-            self.beam_width = self.model_hparams.beam_width
+            self.beam_width = 0 # self.model_hparams.beam_width
 
         # Reset the default TF graph
         tf.reset_default_graph()
@@ -80,28 +80,27 @@ class ChatbotModel(object):
 
         # Build model
 
-        if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
-            # Define training model inputs
-            self.targets = tf.placeholder(tf.int32, [None, None], name="targets")
-            self.target_sequence_length = tf.placeholder(tf.int32, [None], name="target_sequence_length")
-            self.learning_rate = tf.placeholder(tf.float32, name="learning_rate")
-            self.keep_prob = tf.placeholder(tf.float32, name="keep_prob")
+        # if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
+        # Define training model inputs
+        self.targets = tf.placeholder(tf.int32, [None, None], name="targets")
+        self.target_sequence_length = tf.placeholder(tf.int32, [None], name="target_sequence_length")
+        self.learning_rate = tf.placeholder(tf.float32, name="learning_rate")
+        self.keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 
-            self.loss, self.training_step = self._build_model()
+        # elif self.mode == tf.contrib.learn.ModeKeys.INFER:
+        # Define inference model inputs
+        self.max_output_sequence_length = tf.placeholder(tf.int32, [], name="max_output_sequence_length")
+        self.beam_length_penalty_weight = tf.placeholder(tf.float32, name="beam_length_penalty_weight")
+        self.sampling_temperature = tf.placeholder(tf.float32, name="sampling_temperature")
+        self.conversation_history = []
 
-        elif self.mode == tf.contrib.learn.ModeKeys.INFER:
-            # Define inference model inputs
-            self.max_output_sequence_length = tf.placeholder(tf.int32, [], name="max_output_sequence_length")
-            self.beam_length_penalty_weight = tf.placeholder(tf.float32, name="beam_length_penalty_weight")
-            self.sampling_temperature = tf.placeholder(tf.float32, name="sampling_temperature")
+        self.loss, self.training_step, self.predictions, self.predictions_seq_lengths = self._build_model()
 
-            self.predictions, self.predictions_seq_lengths = self._build_model()
-            self.conversation_history = []
-        else:
-            raise ValueError("Unsupported model mode. Choose 'train' or 'infer'.")
+        # else:
+        #     raise ValueError("Unsupported model mode. Choose 'train' or 'infer'.")
 
         # Get the final merged summary for writing to TensorBoard
-        self.merged_summary = tf.summary.merge_all()
+        self.merged_summary = None# tf.summary.merge_all()
 
         # Defining the session, summary writer, and checkpoint saver
         self.session = self._create_session()
@@ -183,7 +182,7 @@ class ChatbotModel(object):
         keep_probability = 1.0 - dropout
 
         # Train on the batch
-        _, batch_training_loss, merged_summary = self.session.run([self.training_step, self.loss, self.merged_summary],
+        _, batch_training_loss = self.session.run([self.training_step, self.loss],
                                                                   {self.inputs: inputs,
                                                                    self.targets: targets,
                                                                    self.input_sequence_length: input_sequence_length,
@@ -272,7 +271,8 @@ class ChatbotModel(object):
                                                            self.input_sequence_length: input_sequence_length,
                                                            self.max_output_sequence_length: max_output_sequence_length,
                                                            self.beam_length_penalty_weight: beam_length_penalty_weight,
-                                                           self.sampling_temperature: sampling_temperature})
+                                                           self.sampling_temperature: sampling_temperature,
+                                                           self.keep_prob: 1})
 
         # Write the training summary for this prediction if summary logging is enabled.
         if log_summary and len(predicted_output_info) == 2:
@@ -449,26 +449,26 @@ class ChatbotModel(object):
                                                  name="output_dense")
 
                 # Build the decoder RNN using the attentional decoder cell and output layer
-                if self.mode != tf.contrib.learn.ModeKeys.INFER:
+                # if self.mode != tf.contrib.learn.ModeKeys.INFER:
                     # In train / validate mode, the training step and loss are returned.
-                    loss, training_step = self._build_training_decoder(batch_size,
-                                                                       decoder_embeddings_matrix,
-                                                                       decoder_cell,
-                                                                       decoder_initial_state,
-                                                                       decoder_scope,
-                                                                       output_layer)
-                    return loss, training_step
-                else:
+                loss, training_step = self._build_training_decoder(batch_size,
+                                                                   decoder_embeddings_matrix,
+                                                                   decoder_cell,
+                                                                   decoder_initial_state,
+                                                                   decoder_scope,
+                                                                   output_layer)
+                # return
+                # else:
                     # In inference mode, the predictions and prediction sequence lengths are returned.
                     # The sequence lengths can differ, but the predictions matrix will be one fixed size.
                     # The predictions_seq_lengths array can be used to properly read the sequences of variable lengths.
-                    predictions, predictions_seq_lengths = self._build_inference_decoder(batch_size,
-                                                                                         decoder_embeddings_matrix,
-                                                                                         decoder_cell,
-                                                                                         decoder_initial_state,
-                                                                                         decoder_scope,
-                                                                                         output_layer)
-                    return predictions, predictions_seq_lengths
+                predictions, predictions_seq_lengths = self._build_inference_decoder(batch_size,
+                                                                                     decoder_embeddings_matrix,
+                                                                                     decoder_cell,
+                                                                                     decoder_initial_state,
+                                                                                     decoder_scope,
+                                                                                     output_layer)
+                return loss, training_step, predictions, predictions_seq_lengths
 
     def _build_encoder(self, encoder_embedded_input):
         """Create the encoder RNN
@@ -561,11 +561,11 @@ class ChatbotModel(object):
 
         # Create the decoder cell and wrap with the attention mechanism
         with tf.variable_scope("decoder_cell"):
-            keep_prob = self.keep_prob if self.mode == tf.contrib.learn.ModeKeys.TRAIN else None
+            keep_prob = self.keep_prob
             decoder_cell = self._create_rnn_cell(self.model_hparams.rnn_size, self.model_hparams.decoder_num_layers,
                                                  keep_prob)
 
-            alignment_history = self.mode == tf.contrib.learn.ModeKeys.INFER and self.beam_width == 0
+            alignment_history = self.beam_width == 0
             output_attention = self.model_hparams.attention_type == "luong" or self.model_hparams.attention_type == "scaled_luong"
             attention_decoder_cell = tf.contrib.seq2seq.AttentionWrapper(cell=decoder_cell,
                                                                          attention_mechanism=attention_mechanism,
@@ -790,3 +790,18 @@ class ChatbotModel(object):
         # Scale to range [0, 255]
         attention_images *= 255
         tf.summary.image("attention_images", attention_images)
+
+    def as_infer(self):
+        class InnerClass(object):
+            def __init__(self, c):
+                self.instance = c
+
+            def __enter__(self):
+                self.bk = self.instance.mode
+                self.instance.mode = tf.contrib.learn.ModeKeys.INFER
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                self.instance.mode = self.bk
+                return False
+
+        return InnerClass(self)

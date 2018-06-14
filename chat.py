@@ -90,7 +90,7 @@ class ChatSession:
     def chat(self, question):
         is_command, terminate_chat = chat_command_handler.handle_command(question, self.model, self.chat_settings)
         if terminate_chat:
-            return "Terminate is not support in wechat model."
+            return "Terminate is not supported in wechat model."
         elif not is_command:
             #If it is not a command (it is a question), pass it on to the chatbot model to get the answer
             question_with_history, answer = self.model.chat(question, self.chat_settings)
@@ -113,4 +113,4 @@ if __name__ == '__main__':
     session = ChatSession()
     while True:
         q = input("You: ")
-        print("BOt: {}".format(session.chat(q)))
+        print("Bot: {}".format(session.chat(q)))
