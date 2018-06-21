@@ -289,7 +289,7 @@ __pycache__/
 /models/cornell_movie_dialog/trained_model_v1
 .vscode/settings.json
 .vscode/launch.json
-/models/cornell_movie_dialog/20180329_030159
-/models/training_data_in_database/20180520_144933
+/models/cornell_movie_dialog/
+/models/training_data_in_database/
 /datasets/**
 /word_embed_clean.vec

@@ -69,7 +69,7 @@ class ChatbotModel(object):
         if self.model_hparams.beam_width is None:
             self.beam_width = 0
         else:
-            self.beam_width = 0 # self.model_hparams.beam_width
+            self.beam_width = self.model_hparams.beam_width
 
         # Reset the default TF graph
         tf.reset_default_graph()
@@ -100,7 +100,7 @@ class ChatbotModel(object):
         #     raise ValueError("Unsupported model mode. Choose 'train' or 'infer'.")
 
         # Get the final merged summary for writing to TensorBoard
-        self.merged_summary = None# tf.summary.merge_all()
+        self.merged_summary = None  # tf.summary.merge_all()
 
         # Defining the session, summary writer, and checkpoint saver
         self.session = self._create_session()
@@ -119,7 +119,7 @@ class ChatbotModel(object):
                 This file must exist within model_dir.
         """
         filepath = path.join(self.model_dir, filename)
-        self.saver.restore(self.session, filepath)
+        # self.saver.restore(self.session, filepath)
 
     def save(self, filename):
         """Saves a checkpoint of the current model weights
@@ -183,12 +183,12 @@ class ChatbotModel(object):
 
         # Train on the batch
         _, batch_training_loss = self.session.run([self.training_step, self.loss],
-                                                                  {self.inputs: inputs,
-                                                                   self.targets: targets,
-                                                                   self.input_sequence_length: input_sequence_length,
-                                                                   self.target_sequence_length: target_sequence_length,
-                                                                   self.learning_rate: learning_rate,
-                                                                   self.keep_prob: keep_probability})
+                                                  {self.inputs: inputs,
+                                                   self.targets: targets,
+                                                   self.input_sequence_length: input_sequence_length,
+                                                   self.target_sequence_length: target_sequence_length,
+                                                   self.learning_rate: learning_rate,
+                                                   self.keep_prob: keep_probability})
 
         # Write the training summary for this step if summary logging is enabled.
         if log_summary:
@@ -307,8 +307,8 @@ class ChatbotModel(object):
         # Prepend the currently tracked steps of the conversation history separated by EOS tokens.
         # This allows for deeper dialog context to influence the answer prediction.
         question_with_history = []
-        for i in range(len(self.conversation_history)):
-            question_with_history += self.conversation_history[i] + [self.input_vocabulary.eos_int()]
+        # for i in range(len(self.conversation_history)):
+        #     question_with_history += self.conversation_history[i] + [self.input_vocabulary.eos_int()]
         question_with_history += question
 
         # Get the answer prediction
@@ -344,9 +344,9 @@ class ChatbotModel(object):
             answer_beams.append(predicted_answer)
 
         # Add new conversation steps to the end of the history and trim from the beginning if it is longer than conv_history_length
-        self.conversation_history.append(question)
-        self.conversation_history.append(answer_beams[0])
-        self.trim_conversation_history(chat_settings.inference_hparams.conv_history_length)
+        # self.conversation_history.append(question)
+        # self.conversation_history.append(answer_beams[0])
+        # self.trim_conversation_history(chat_settings.inference_hparams.conv_history_length)
 
         # Convert the answer(s) to text and return
         answers = []
@@ -421,7 +421,7 @@ class ChatbotModel(object):
                 encoder_outputs, encoder_state = self._build_encoder(encoder_embedded_input)
 
             # Decoder
-            with tf.variable_scope("decoder") as decoder_scope:
+            with tf.variable_scope("decoder", reuse=tf.AUTO_REUSE) as decoder_scope:
                 # For description of word embeddings, see comments above on the encoder_embeddings_matrix.
                 # If the share_embedding flag is set to True, the same matrix is used to embed words in the input and target sequences.
                 # This is useful to avoid redundency when the same vocabulary is used for the inputs and targets
@@ -435,9 +435,8 @@ class ChatbotModel(object):
                         name="decoder_embeddings_matrix")
 
                 # Create the attentional decoder cell
-                decoder_cell, decoder_initial_state = self._build_attention_decoder_cell(encoder_outputs,
-                                                                                         encoder_state,
-                                                                                         batch_size)
+                train_decoder_cell, infer_decoder_cell, train_decoder_initial_state, infer_decoder_initial_state = \
+                    self._build_attention_decoder_cell(encoder_outputs, encoder_state, batch_size)
 
                 # Output (projection) layer
                 weights = tf.truncated_normal_initializer(stddev=0.1)
@@ -450,22 +449,22 @@ class ChatbotModel(object):
 
                 # Build the decoder RNN using the attentional decoder cell and output layer
                 # if self.mode != tf.contrib.learn.ModeKeys.INFER:
-                    # In train / validate mode, the training step and loss are returned.
+                # In train / validate mode, the training step and loss are returned.
                 loss, training_step = self._build_training_decoder(batch_size,
                                                                    decoder_embeddings_matrix,
-                                                                   decoder_cell,
-                                                                   decoder_initial_state,
+                                                                   train_decoder_cell,
+                                                                   train_decoder_initial_state,
                                                                    decoder_scope,
                                                                    output_layer)
                 # return
                 # else:
-                    # In inference mode, the predictions and prediction sequence lengths are returned.
-                    # The sequence lengths can differ, but the predictions matrix will be one fixed size.
-                    # The predictions_seq_lengths array can be used to properly read the sequences of variable lengths.
+                # In inference mode, the predictions and prediction sequence lengths are returned.
+                # The sequence lengths can differ, but the predictions matrix will be one fixed size.
+                # The predictions_seq_lengths array can be used to properly read the sequences of variable lengths.
                 predictions, predictions_seq_lengths = self._build_inference_decoder(batch_size,
                                                                                      decoder_embeddings_matrix,
-                                                                                     decoder_cell,
-                                                                                     decoder_initial_state,
+                                                                                     infer_decoder_cell,
+                                                                                     infer_decoder_initial_state,
                                                                                      decoder_scope,
                                                                                      output_layer)
                 return loss, training_step, predictions, predictions_seq_lengths
@@ -535,26 +534,46 @@ class ChatbotModel(object):
         """
         # If beam search decoding - repeat the input sequence length, encoder output, encoder state, and batch size tensors
         # once for every beam.
-        input_sequence_length = self.input_sequence_length
+        infer_input_sequence_length = train_input_sequence_length = self.input_sequence_length
+        infer_batch_size = train_batch_size = batch_size
+        train_encoder_outputs = infer_encoder_outputs = encoder_outputs
+        infer_encoder_state = train_encoder_state = encoder_state
         if self.beam_width > 0:
-            encoder_outputs = tf.contrib.seq2seq.tile_batch(encoder_outputs, multiplier=self.beam_width)
-            input_sequence_length = tf.contrib.seq2seq.tile_batch(input_sequence_length, multiplier=self.beam_width)
-            encoder_state = tf.contrib.seq2seq.tile_batch(encoder_state, multiplier=self.beam_width)
-            batch_size = batch_size * self.beam_width
+            infer_encoder_outputs = tf.contrib.seq2seq.tile_batch(encoder_outputs, multiplier=self.beam_width)
+            infer_input_sequence_length = tf.contrib.seq2seq.tile_batch(self.input_sequence_length, multiplier=self.beam_width)
+            infer_encoder_state = tf.contrib.seq2seq.tile_batch(encoder_state, multiplier=self.beam_width)
+            infer_batch_size = batch_size * self.beam_width
 
         # Construct the attention mechanism
         if self.model_hparams.attention_type == "bahdanau" or self.model_hparams.attention_type == "normed_bahdanau":
             normalize = self.model_hparams.attention_type == "normed_bahdanau"
-            attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(num_units=self.model_hparams.rnn_size,
-                                                                       memory=encoder_outputs,
-                                                                       memory_sequence_length=input_sequence_length,
-                                                                       normalize=normalize)
+            with tf.variable_scope('attention'):
+                infer_attention_mechanism = train_attention_mechanism = \
+                    tf.contrib.seq2seq.BahdanauAttention(num_units=self.model_hparams.rnn_size,
+                                                         memory=train_encoder_outputs,
+                                                         memory_sequence_length=train_input_sequence_length,
+                                                         normalize=normalize)
+            if self.beam_width > 0:
+                with tf.variable_scope('attention', reuse=True):
+                    infer_attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(num_units=self.model_hparams.rnn_size,
+                                                                                     memory=infer_encoder_outputs,
+                                                                                     memory_sequence_length=infer_input_sequence_length,
+                                                                                     normalize=normalize)
         elif self.model_hparams.attention_type == "luong" or self.model_hparams.attention_type == "scaled_luong":
             scale = self.model_hparams.attention_type == "scaled_luong"
-            attention_mechanism = tf.contrib.seq2seq.LuongAttention(num_units=self.model_hparams.rnn_size,
-                                                                    memory=encoder_outputs,
-                                                                    memory_sequence_length=input_sequence_length,
-                                                                    scale=scale)
+            with tf.variable_scope('attention'):
+                infer_attention_mechanism = train_attention_mechanism = \
+                    tf.contrib.seq2seq.LuongAttention(num_units=self.model_hparams.rnn_size,
+                                                      memory=train_encoder_outputs,
+                                                      memory_sequence_length=train_input_sequence_length,
+                                                      scale=scale)
+            if self.beam_width > 0:
+                with tf.variable_scope('attention', reuse=True):
+                    infer_attention_mechanism = tf.contrib.seq2seq.LuongAttention(
+                        num_units=self.model_hparams.rnn_size,
+                        memory=infer_encoder_outputs,
+                        memory_sequence_length=infer_input_sequence_length,
+                        scale=scale)
         else:
             raise ValueError(
                 "Unsupported attention type. Use ('bahdanau' / 'normed_bahdanau') for Bahdanau attention or ('luong' / 'scaled_luong') for Luong attention.")
@@ -567,19 +586,31 @@ class ChatbotModel(object):
 
             alignment_history = self.beam_width == 0
             output_attention = self.model_hparams.attention_type == "luong" or self.model_hparams.attention_type == "scaled_luong"
-            attention_decoder_cell = tf.contrib.seq2seq.AttentionWrapper(cell=decoder_cell,
-                                                                         attention_mechanism=attention_mechanism,
-                                                                         attention_layer_size=self.model_hparams.rnn_size,
-                                                                         alignment_history=alignment_history,
-                                                                         output_attention=output_attention,
-                                                                         name="attention_decoder_cell")
+            infer_attention_decoder_cell = train_attention_decoder_cell = tf.contrib.seq2seq.AttentionWrapper(
+                cell=decoder_cell,
+                attention_mechanism=train_attention_mechanism,
+                attention_layer_size=self.model_hparams.rnn_size,
+                alignment_history=alignment_history,
+                output_attention=output_attention,
+                name="attention_decoder_cell")
+            if self.beam_width > 0:
+                infer_attention_decoder_cell = tf.contrib.seq2seq.AttentionWrapper(
+                    cell=decoder_cell,
+                    attention_mechanism=infer_attention_mechanism,
+                    attention_layer_size=self.model_hparams.rnn_size,
+                    alignment_history=alignment_history,
+                    output_attention=output_attention,
+                    name="attention_decoder_cell")
 
         # If the encoder and decoder are the same structure, set the decoder initial state to the encoder final state.
-        decoder_initial_state = attention_decoder_cell.zero_state(batch_size, tf.float32)
+        infer_decoder_initial_state = infer_attention_decoder_cell.zero_state(infer_batch_size, tf.float32)
+        train_decoder_initial_state = train_attention_decoder_cell.zero_state(train_batch_size, tf.float32)
         if self.model_hparams.encoder_num_layers == self.model_hparams.decoder_num_layers:
-            decoder_initial_state = decoder_initial_state.clone(cell_state=encoder_state)
+            infer_decoder_initial_state = infer_decoder_initial_state.clone(cell_state=infer_encoder_state)
+            train_decoder_initial_state = train_decoder_initial_state.clone(cell_state=train_encoder_state)
 
-        return attention_decoder_cell, decoder_initial_state
+        return train_attention_decoder_cell, infer_attention_decoder_cell, \
+               train_decoder_initial_state, infer_decoder_initial_state
 
     def _build_training_decoder(self, batch_size, decoder_embeddings_matrix, decoder_cell, decoder_initial_state,
                                 decoder_scope, output_layer):

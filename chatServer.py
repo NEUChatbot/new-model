@@ -71,8 +71,6 @@ class ChatServer(object):
 
         self.train_thred = threading.Thread(target=train.train, args=(waiting_queue, chat_setting, result_queue))
         self.train_thred.start()
-        self.handle_thread = threading.Thread(target=self.handleResult)
-        self.handle_thread.start()
         try:
             myip = requests.get('http://fun.alphamj.cn/wx/registered').content.decode()
         except:
@@ -80,15 +78,6 @@ class ChatServer(object):
         print('listen {}:4321'.format(myip))
         self.server = http.server.HTTPServer((myip, 4321), ServerClass)
         print('server init finish')
-
-    def handleResult(self):
-        pass
-        # while True:
-        #     if not result_queue.empty():
-        #         r = result_queue.get()
-        #         print('{}: {}'.format(r.id, r.data[1]))
-        #         requests.post('http://fun.alphamj.cn/wx/responsechat', data={'id': r.id, 'content': r.data[1]})
-        #     time.sleep(0.01)
 
 
 if __name__ == '__main__':
