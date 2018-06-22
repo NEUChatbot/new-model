@@ -167,6 +167,7 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
                     if hparams.training_hparams.checkpoint_on_training:
                         model.save(best_train_checkpoint)
                         training_stats.save(training_stats_filepath)
+                        print('model saved')
                     # Checkpoint - training
                     if training_stats.compare_training_loss(epoch_average_train_loss):
 

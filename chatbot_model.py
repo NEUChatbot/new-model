@@ -119,7 +119,7 @@ class ChatbotModel(object):
                 This file must exist within model_dir.
         """
         filepath = path.join(self.model_dir, filename)
-        # self.saver.restore(self.session, filepath)
+        self.saver.restore(self.session, filepath)
 
     def save(self, filename):
         """Saves a checkpoint of the current model weights

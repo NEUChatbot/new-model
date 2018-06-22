@@ -5,6 +5,7 @@ import train
 import requests
 import datetime
 import threading
+import jieba
 import http.server
 from os import path
 from hparams import Hparams
@@ -24,6 +25,9 @@ class Struct():
         self.data = data
 
 
+ids = set()
+
+
 class ServerClass(http.server.CGIHTTPRequestHandler):
     def __init__(self, request, client_address, server):
         super().__init__(request, client_address, server)
@@ -33,9 +37,16 @@ class ServerClass(http.server.CGIHTTPRequestHandler):
         if ctype == 'application/x-www-form-urlencoded':
             length = int(self.headers['content-length'])
             postvars = parse_qs(self.rfile.read(length).decode(), keep_blank_values=1)
-            print('chat :{} {}'.format(postvars['id'], postvars['question']))
-
-            waiting_queue.put(Struct(postvars['id'][0], postvars['question'][0]))
+            question = ' '.join(jieba.cut(postvars['question'][0]))
+            print('chat :{} {}'.format(postvars['id'], question))
+            if postvars['id'][0] in ids:
+                print('ignore')
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'success')
+                return
+            ids.add(postvars['id'][0])
+            waiting_queue.put(Struct(postvars['id'][0], question))
             start_time = time.time()
             while time.time() - start_time < 10 and result_queue.get(postvars['id'][0], None) is None:
                 pass
@@ -43,6 +54,7 @@ class ServerClass(http.server.CGIHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(response[1].encode())
+            ids.remove(postvars['id'][0])
         else:
             self.send_response(200)
             self.end_headers()
