@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import queue
 import train
@@ -12,6 +13,7 @@ from hparams import Hparams
 from cgi import parse_header
 from urllib.parse import parse_qs
 from chat_settings import ChatSettings
+from chat import ChatSession
 
 
 waiting_queue = queue.Queue()
@@ -68,21 +70,30 @@ class ServerClass(http.server.CGIHTTPRequestHandler):
 
 
 class ChatServer(object):
-    def __init__(self):
-        checkpointfile = r'models\training_data_in_database\20180520_144933\best_weights_training.ckpt'
-        # Make sure checkpoint file & hparams file exists
-        checkpoint_filepath = os.path.relpath(checkpointfile)
-        model_dir = os.path.dirname(checkpoint_filepath)
-        hparams_filepath = os.path.join(model_dir, "hparams.json")
-        hparams = Hparams.load(hparams_filepath)
-        global chat_setting
-        # Setting up the chat
-        self.chatlog_filepath = path.join(model_dir, "chat_logs", "chatlog_{0}.txt".format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
-        chat_setting = self.chat_settings = ChatSettings(hparams.inference_hparams)
-        # chat_command_handler.print_commands()
+    def __init__(self, training):
+        if training:
+            checkpointfile = r'models\training_data_in_database\20180520_144933\best_weights_training.ckpt'
+            # Make sure checkpoint file & hparams file exists
+            checkpoint_filepath = os.path.relpath(checkpointfile)
+            model_dir = os.path.dirname(checkpoint_filepath)
+            hparams_filepath = os.path.join(model_dir, "hparams.json")
+            hparams = Hparams.load(hparams_filepath)
+            global chat_setting
+            # Setting up the chat
+            self.chatlog_filepath = path.join(model_dir, "chat_logs", "chatlog_{0}.txt".format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
+            chat_setting = self.chat_settings = ChatSettings(hparams.inference_hparams)
+            # chat_command_handler.print_commands()
+            self.train_thred = threading.Thread(target=train.train, args=(waiting_queue, chat_setting, result_queue))
+            self.train_thred.start()
+        else:
+            def server_thread_function():
+                s = ChatSession()
+                while True:
+                    if not waiting_queue.empty():
+                        q = waiting_queue.get()
+                        result_queue[q.id] = s.chat(q.data)
+            threading.Thread(target=server_thread_function).start()
 
-        self.train_thred = threading.Thread(target=train.train, args=(waiting_queue, chat_setting, result_queue))
-        self.train_thred.start()
         try:
             myip = requests.get('http://fun.alphamj.cn/wx/registered').content.decode()
         except:
@@ -93,5 +104,9 @@ class ChatServer(object):
 
 
 if __name__ == '__main__':
-    s = ChatServer()
+    try:
+        s = ChatServer(True)
+        # s = ChatServer(len(sys.argv) > 1 and sys.argv[1] == 'train')
+    except Exception:
+        sys.exit(1)
     s.server.serve_forever()
