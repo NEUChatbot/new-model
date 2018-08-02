@@ -105,8 +105,8 @@ class ChatServer(object):
 
 if __name__ == '__main__':
     try:
-        s = ChatServer(True)
-        # s = ChatServer(len(sys.argv) > 1 and sys.argv[1] == 'train')
+        # s = ChatServer(True)
+        s = ChatServer(len(sys.argv) > 1 and sys.argv[1] == 'train')
     except Exception:
         sys.exit(1)
     s.server.serve_forever()
