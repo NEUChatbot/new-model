@@ -280,7 +280,7 @@ class Vocabulary(object):
         text = re.sub(r"can't", "can not", text)
         text = re.sub(r"cannot", "can not", text)
         text = re.sub(r"n't", " not", text)
-        text = re.sub(r"[()\"#/@;；:：<《>》{}`‘’'+=~|$&*%\[\]_]", "", text)
+        text = re.sub(r"[()\"#/@;；:：<《>》{}`‘’'+=~|$&*%\[\]_]", " ", text)
         text = re.sub(r"[.]+", " . ", text)
         text = re.sub(r"[!]+", " ! ", text)
         text = re.sub(r"[?]+", " ? ", text)
@@ -298,5 +298,8 @@ class Vocabulary(object):
             text_parts = text.split()
             if len(text_parts) > max_words:
                 text = " ".join(text_parts[:max_words])
+
+        if text == '':
+            text = "?"
                 
         return text

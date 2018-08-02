@@ -11,7 +11,6 @@ import dataset_reader_factory
 from chatbot_model import ChatbotModel
 from hparams import Hparams
 from training_stats import TrainingStats
-from chatServer import Struct
 
 
 def train(waiting_queue=None, chat_setting=None, result_queue=None):
@@ -106,7 +105,7 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
                 epoch_total_train_loss += batch_train_loss
                 batch_counter += 1
                 training_stats.global_step += 1
-                if hparams.training_hparams.response_in_training:
+                if waiting_queue is not None and hparams.training_hparams.response_in_training:
                     if not waiting_queue.empty():
                         task = waiting_queue.get()
                         with model.as_infer():
@@ -194,3 +193,7 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
             training_stats.save(training_stats_filepath)
             print('Model saved.')
         print("Training Complete!")
+
+
+if __name__ == '__main__':
+    train()

@@ -307,8 +307,8 @@ class ChatbotModel(object):
         # Prepend the currently tracked steps of the conversation history separated by EOS tokens.
         # This allows for deeper dialog context to influence the answer prediction.
         question_with_history = []
-        # for i in range(len(self.conversation_history)):
-        #     question_with_history += self.conversation_history[i] + [self.input_vocabulary.eos_int()]
+        for i in range(len(self.conversation_history)):
+            question_with_history += self.conversation_history[i] + [self.input_vocabulary.eos_int()]
         question_with_history += question
 
         # Get the answer prediction
