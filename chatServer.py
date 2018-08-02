@@ -91,7 +91,8 @@ class ChatServer(object):
                 while True:
                     if not waiting_queue.empty():
                         q = waiting_queue.get()
-                        result_queue[q.id] = s.chat(q.data)
+                        result_queue[q.id] = [None, s.chat(q.data)]
+                        print(result_queue[q.id])
             threading.Thread(target=server_thread_function).start()
 
         try:
