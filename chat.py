@@ -29,7 +29,7 @@ def initialize_session(mode):
             "Cannot find models directory 'models' and datasets directory 'datasets' within working directory '{0}'. Make sure to set the working directory to the chatbot root folder."
             .format(os.getcwd()))
 
-    checkpointfile = r'models\training_data_in_database\20180520_144933\best_weights_training.ckpt'
+    checkpointfile = r'models/training_data_in_database/20180520_144933/best_weights_training.ckpt'
     # Make sure checkpoint file & hparams file exists
     checkpoint_filepath = os.path.relpath(checkpointfile)
     if not os.path.isfile(checkpoint_filepath + ".meta"):
