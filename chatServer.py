@@ -55,7 +55,7 @@ class ServerClass(http.server.CGIHTTPRequestHandler):
             response = result_queue.pop(postvars['id'][0], 'server timeout :(')
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(response[1].encode())
+            self.wfile.write(response.encode())
             ids.remove(postvars['id'][0])
         else:
             self.send_response(200)
@@ -87,11 +87,16 @@ class ChatServer(object):
             self.train_thred.start()
         else:
             def server_thread_function():
-                s = ChatSession()
+                sess = ChatSession()
                 while True:
                     if not waiting_queue.empty():
                         q = waiting_queue.get()
-                        result_queue[q.id] = [None, s.chat(q.data)]
+                        if q.data == 'version':
+                            t = os.path.getmtime('models/training_data_in_database/20180520_144933/best_weights_training.ckpt.data-00000-of-00001')
+                            timeStruct = time.localtime(t)
+                            result_queue[q.id] = time.strftime('%Y-%m-%d %H:%M:%S', timeStruct)
+                        else:
+                            result_queue[q.id] = sess.chat(q.data)
                         print(result_queue[q.id])
             threading.Thread(target=server_thread_function).start()
 
@@ -105,9 +110,6 @@ class ChatServer(object):
 
 
 if __name__ == '__main__':
-    try:
-        # s = ChatServer(True)
-        s = ChatServer(len(sys.argv) > 1 and sys.argv[1] == 'train')
-    except Exception:
-        sys.exit(1)
+    jieba.initialize()
+    s = ChatServer(len(sys.argv) > 1 and sys.argv[1] == 'train')
     s.server.serve_forever()
