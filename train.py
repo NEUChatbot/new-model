@@ -16,10 +16,10 @@ from training_stats import TrainingStats
 def train(waiting_queue=None, chat_setting=None, result_queue=None):
     # Read the hyperparameters and paths
     # dataset_dir, model_dir, hparams, resume_checkpoint = general_utils.initialize_session("train")
-    checkpoint_filepath = os.path.relpath(r'models/training_data_in_database/20180520_144933/best_weights_training.ckpt')
+    checkpoint_filepath = os.path.relpath(r'models/training_data_in_database/best_weights_training.ckpt')
     resume_checkpoint = os.path.basename(checkpoint_filepath)
     model_dir = os.path.dirname(checkpoint_filepath)
-    dataset_name = os.path.basename(os.path.dirname(model_dir))
+    dataset_name = os.path.basename(model_dir)
     dataset_dir = os.path.join("datasets", dataset_name)
     training_stats_filepath = path.join(model_dir, "training_stats.json")
     hparams_filepath = os.path.join(model_dir, "hparams.json")

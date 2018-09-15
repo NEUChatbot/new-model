@@ -5,6 +5,7 @@ from os import path
 from cornell_reader import CornellReader
 from database_reader import DataBaseReader
 
+
 def get_dataset_reader(dataset_dir):
     """Gets the appropriate reader implementation for the specified dataset name.
 
@@ -20,4 +21,4 @@ def get_dataset_reader(dataset_dir):
         if reader.dataset_name == dataset_name:
             return reader
 
-    raise ValueError("There is no dataset reader implementation for '{0}'. If this is a new dataset, please add one!".format(dataset_name))
+    raise ValueError("There is no dataset reader implementation for {0}. If this is a new dataset, please add one!".format(dataset_name))

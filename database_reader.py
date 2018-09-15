@@ -26,6 +26,6 @@ class DataBaseReader(DatasetReader):
         print('open database, {} items altogether'.format(size))
         input_vocabulary = vocabulary.Vocabulary()
         embeddings = input_vocabulary.load_with_embedding()
-        ids = np.random.permutation(size)
-        databatch = DataBatch_db.DataBatch_db(db, input_vocabulary, input_vocabulary, ids)
+        ids = range(size)
+        databatch = DataBatch_db.DataBatch_db(db, input_vocabulary, input_vocabulary)
         return databatch, embeddings

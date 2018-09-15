@@ -72,7 +72,7 @@ class ServerClass(http.server.CGIHTTPRequestHandler):
 class ChatServer(object):
     def __init__(self, training):
         if training:
-            checkpointfile = r'models\training_data_in_database\20180520_144933\best_weights_training.ckpt'
+            checkpointfile = r'models\training_data_in_database\best_weights_training.ckpt'
             # Make sure checkpoint file & hparams file exists
             checkpoint_filepath = os.path.relpath(checkpointfile)
             model_dir = os.path.dirname(checkpoint_filepath)
@@ -92,7 +92,7 @@ class ChatServer(object):
                     if not waiting_queue.empty():
                         q = waiting_queue.get()
                         if q.data == 'version':
-                            t = os.path.getmtime('models/training_data_in_database/20180520_144933/best_weights_training.ckpt.data-00000-of-00001')
+                            t = os.path.getmtime('models/training_data_in_database/best_weights_training.ckpt.data-00000-of-00001')
                             result_queue[q.id] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(t))
                         else:
                             result_queue[q.id] = sess.chat(q.data)
