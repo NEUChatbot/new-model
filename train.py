@@ -6,27 +6,26 @@ import time
 import math
 from os import path
 
-import general_utils
-import dataset_reader_factory
 from chatbot_model import ChatbotModel
+from database_reader import DataBaseReader
 from hparams import Hparams
 from training_stats import TrainingStats
 
-
+basedir = './'
 def train(waiting_queue=None, chat_setting=None, result_queue=None):
     # Read the hyperparameters and paths
     # dataset_dir, model_dir, hparams, resume_checkpoint = general_utils.initialize_session("train")
-    checkpoint_filepath = os.path.relpath(r'models/training_data_in_database/best_weights_training.ckpt')
-    resume_checkpoint = os.path.basename(checkpoint_filepath)
+
+    checkpoint_filepath = os.path.join(basedir, 'models/best_weights_training.ckpt')
+    resume_checkpoint = None # os.path.basename(checkpoint_filepath)
     model_dir = os.path.dirname(checkpoint_filepath)
-    dataset_name = os.path.basename(model_dir)
-    dataset_dir = os.path.join("datasets", dataset_name)
+    dataset_dir = os.path.join(basedir, "datasets")
     training_stats_filepath = path.join(model_dir, "training_stats.json")
     hparams_filepath = os.path.join(model_dir, "hparams.json")
     hparams = Hparams.load(hparams_filepath)
 
     # Read the chatbot dataset
-    dataset_reader = dataset_reader_factory.get_dataset_reader(dataset_dir)
+    dataset_reader = DataBaseReader()
 
     print()
     print("Reading dataset '{0}'...".format(dataset_reader.dataset_name))
@@ -91,12 +90,13 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
             epoch_total_train_loss = 0
             train_batches = training_dataset.batches(hparams.training_hparams.batch_size)
             batch_index = 0
-            for questions, answers, seqlen_questions, seqlen_answers in train_batches:
+            for questions, answers, seqlen_questions, seqlen_answers, emotion in train_batches:
 
                 batch_train_loss = model.train_batch(inputs=questions,
                                                      targets=answers,
                                                      input_sequence_length=seqlen_questions,
                                                      target_sequence_length=seqlen_answers,
+                                                     emotion_values=emotion,
                                                      learning_rate=training_stats.learning_rate,
                                                      dropout=hparams.training_hparams.dropout,
                                                      global_step=training_stats.global_step,
@@ -142,7 +142,7 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
                         total_val_metric_value = 0
                         batches_starting_time = time.time()
                         val_batches = validation_dataset.batches(hparams.training_hparams.batch_size)
-                        for batch_index_validation, (questions, answers, seqlen_questions, seqlen_answers) in enumerate(
+                        for batch_index_validation, (questions, answers, seqlen_questions, seqlen_answers, _) in enumerate(
                                 val_batches):
                             batch_val_metric_value = model.validate_batch(inputs=questions,
                                                                           targets=answers,

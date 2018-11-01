@@ -49,6 +49,7 @@ class DataBatch_db(object):
                     'number of result is less than expect while query the database with key={}'.format(str(query)))
             asks = value[:, 0].tolist()
             answers = value[:, 1].tolist()
+            emotions = None # value[:, 2].tolist()
             asks = [sentence + " {0} ".format(self.input_vocabulary.EOS) for sentence in asks]
             answers = [sentence + " {0} ".format(self.input_vocabulary.EOS) for sentence in answers]
             asks = [self.input_vocabulary.words2ints(sentence) for sentence in asks]
@@ -59,7 +60,8 @@ class DataBatch_db(object):
             padded_questions_in_batch = np.array(self._apply_padding(asks, self.input_vocabulary))
             padded_answers_in_batch = np.array(self._apply_padding(answers, self.output_vocabulary))
 
-            yield padded_questions_in_batch, padded_answers_in_batch, seqlen_questions_in_batch, seqlen_answers_in_batch
+            yield padded_questions_in_batch, padded_answers_in_batch, \
+                  seqlen_questions_in_batch, seqlen_answers_in_batch, emotions
 
     def size(self):
         return self._size

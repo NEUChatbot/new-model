@@ -94,6 +94,7 @@ class ChatServer(object):
                         if q.data == 'version':
                             t = os.path.getmtime('models/training_data_in_database/best_weights_training.ckpt.data-00000-of-00001')
                             result_queue[q.id] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(t))
+
                         else:
                             result_queue[q.id] = sess.chat(q.data)
                         print(result_queue[q.id])

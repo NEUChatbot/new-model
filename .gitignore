@@ -286,10 +286,10 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-/models/cornell_movie_dialog/trained_model_v1
+/models/
 .vscode/settings.json
 .vscode/launch.json
-/models/cornell_movie_dialog/
-/models/training_data_in_database/
+/models/
+/models/
 /datasets/**
 /word_embed_clean.vec
