@@ -4,7 +4,6 @@ Base class for dataset readers
 import abc
 from os import path
 
-from dataset import Dataset
 from vocabulary import Vocabulary
 
 class DatasetReader(object):

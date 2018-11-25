@@ -14,15 +14,14 @@ from training_stats import TrainingStats
 basedir = './'
 def train(waiting_queue=None, chat_setting=None, result_queue=None):
     # Read the hyperparameters and paths
-    # dataset_dir, model_dir, hparams, resume_checkpoint = general_utils.initialize_session("train")
-
     checkpoint_filepath = os.path.join(basedir, 'models/best_weights_training.ckpt')
-    resume_checkpoint = None # os.path.basename(checkpoint_filepath)
+
+    resume_checkpoint = None  # 重新训练
+    #  resume_checkpoint = os.path.basename(checkpoint_filepath)  # 继续训练
     model_dir = os.path.dirname(checkpoint_filepath)
     dataset_dir = os.path.join(basedir, "datasets")
     training_stats_filepath = path.join(model_dir, "training_stats.json")
-    hparams_filepath = os.path.join(model_dir, "hparams.json")
-    hparams = Hparams.load(hparams_filepath)
+    hparams = Hparams()
 
     # Read the chatbot dataset
     dataset_reader = DataBaseReader()
@@ -136,7 +135,7 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
 
                 # End of epoch activities
                 # Run validation
-                if print_counter == 5:
+                if print_counter == hparams.training_hparams.verify_after_n_prints:
                     print_counter = 0
                     if validation_dataset_size > 0:
                         total_val_metric_value = 0
@@ -197,3 +196,4 @@ def train(waiting_queue=None, chat_setting=None, result_queue=None):
 
 if __name__ == '__main__':
     train()
+    os.system('../shutdown.sh')

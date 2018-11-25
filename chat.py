@@ -14,60 +14,22 @@ from vocabulary import Vocabulary
 from hparams import Hparams
 
 
-def initialize_session(mode):
-    """Helper method for initializing a chatbot training session
-    by loading the model dir from command line args and reading the hparams in
-
-    Args:
-        mode: "train" or "chat"
-    """
-
-    # Make sure script was run in the correct working directory
-    models_dir = "models"
-    datasets_dir = "datasets"
-    if not os.path.isdir(models_dir) or not os.path.isdir(datasets_dir):
-        raise NotADirectoryError(
-            "Cannot find models directory 'models' and datasets directory 'datasets' within working directory '{0}'. Make sure to set the working directory to the chatbot root folder."
-                .format(os.getcwd()))
-
-    checkpointfile = r'models/training_data_in_database/best_weights_training.ckpt'
-    # Make sure checkpoint file & hparams file exists
-    checkpoint_filepath = os.path.relpath(checkpointfile)
-    if not os.path.isfile(checkpoint_filepath + ".meta"):
-        raise FileNotFoundError(
-            "The checkpoint file '{0}' was not found.".format(os.path.realpath(checkpoint_filepath)))
-    # Get the checkpoint model directory
-    checkpoint = os.path.basename(checkpoint_filepath)
-    model_dir = os.path.dirname(checkpoint_filepath)
-    dataset_name = os.path.basename(os.path.dirname(model_dir))
-    dataset_dir = os.path.join(datasets_dir, dataset_name)
-
-    # Load the hparams from file
-    hparams_filepath = os.path.join(model_dir, "hparams.json")
-    hparams = Hparams.load(hparams_filepath)
-
-    return dataset_dir, model_dir, hparams, checkpoint
-
-
+basedir = './'
 class ChatSession:
 
     def __init__(self):
         # Read the hyperparameters and configure paths
-        _, model_dir, hparams, checkpoint = initialize_session("chat")
+        checkpoint_filepath = os.path.join(basedir, 'models/best_weights_training.ckpt')
+        checkpoint = os.path.basename(checkpoint_filepath)
+        model_dir = os.path.dirname(checkpoint_filepath)
+        hparams = Hparams()
 
         # Load the vocabulary
         print()
         print("Loading vocabulary...")
-        if hparams.model_hparams.share_embedding:
-            shared_vocab_filepath = path.join(model_dir, Vocabulary.SHARED_VOCAB_FILENAME)
-            input_vocabulary = Vocabulary.load(shared_vocab_filepath)
-            output_vocabulary = input_vocabulary
-        else:
-            input_vocab_filepath = path.join(model_dir, Vocabulary.INPUT_VOCAB_FILENAME)
-            input_vocabulary = Vocabulary.load(input_vocab_filepath)
-            output_vocab_filepath = path.join(model_dir, Vocabulary.OUTPUT_VOCAB_FILENAME)
-            output_vocabulary = Vocabulary.load(output_vocab_filepath)
 
+        input_vocabulary = Vocabulary.load()
+        output_vocabulary = input_vocabulary
         # Create the model
         print("Initializing model...")
         print()

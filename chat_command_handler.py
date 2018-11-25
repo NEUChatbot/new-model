@@ -33,7 +33,7 @@ def print_commands():
     print("--showbeams (Output all predicted beams);                       --hidebeams (Output only the highest ranked beam);")
     print("--beamlenpenalty=N (Set beam length penalty weight to N);       --samplingtemp=N (Set sampling temperature to N);")
     print("--maxanswerlen=N (Set max words in answer to N);                --convhistlength=N (Set the conversation history length to N);")
-    print("--clearconvhist (Clear the conversation history);               --reset (Reset to default settings from hparams.json);")
+    print("--clearconvhist (Clear the conversation history);               --reset (Reset to default settings);")
     print("--help (Show this list of commands)                             --exit (Quit);")
     print()
     print()

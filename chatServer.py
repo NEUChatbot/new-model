@@ -72,12 +72,11 @@ class ServerClass(http.server.CGIHTTPRequestHandler):
 class ChatServer(object):
     def __init__(self, training):
         if training:
-            checkpointfile = r'models\training_data_in_database\best_weights_training.ckpt'
+            checkpointfile = r'models\best_weights_training.ckpt'
             # Make sure checkpoint file & hparams file exists
             checkpoint_filepath = os.path.relpath(checkpointfile)
             model_dir = os.path.dirname(checkpoint_filepath)
-            hparams_filepath = os.path.join(model_dir, "hparams.json")
-            hparams = Hparams.load(hparams_filepath)
+            hparams = Hparams()
             global chat_setting
             # Setting up the chat
             self.chatlog_filepath = path.join(model_dir, "chat_logs", "chatlog_{0}.txt".format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
@@ -92,7 +91,7 @@ class ChatServer(object):
                     if not waiting_queue.empty():
                         q = waiting_queue.get()
                         if q.data == 'version':
-                            t = os.path.getmtime('models/training_data_in_database/best_weights_training.ckpt.data-00000-of-00001')
+                            t = os.path.getmtime('models/best_weights_training.ckpt.data-00000-of-00001')
                             result_queue[q.id] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(t))
 
                         else:

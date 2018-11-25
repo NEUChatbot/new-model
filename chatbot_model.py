@@ -1,6 +1,9 @@
 """
 ChatbotModel class
 """
+import os
+import sys
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.layers import core as layers_core
@@ -85,16 +88,18 @@ class ChatbotModel(object):
         if self.model_hparams.share_embedding:
             shared_embedding = config.embeddings.add()
             shared_embedding.tensor_name = "model/encoder/shared_embeddings_matrix"
-            shared_embedding.metadata_path = Vocabulary.SHARED_VOCAB_FILENAME
+            shared_embedding.metadata_path = Vocabulary.fname
         else:
             encoder_embedding = config.embeddings.add()
             encoder_embedding.tensor_name = "model/encoder/encoder_embeddings_matrix"
-            encoder_embedding.metadata_path = Vocabulary.INPUT_VOCAB_FILENAME
+            encoder_embedding.metadata_path = Vocabulary.fname
             decoder_embedding = config.embeddings.add()
             decoder_embedding.tensor_name = "model/decoder/decoder_embeddings_matrix"
-            decoder_embedding.metadata_path = Vocabulary.OUTPUT_VOCAB_FILENAME
+            decoder_embedding.metadata_path = Vocabulary.fname
 
         projector.visualize_embeddings(self.summary_writer, config)
+
+        os.system('rsync -r ./models/ /data/models/')
 
     def train_batch(self, inputs, targets, input_sequence_length, target_sequence_length, emotion_values,
                     learning_rate, dropout, global_step, log_summary=True):
@@ -225,6 +230,7 @@ class ChatbotModel(object):
         # Process the question by cleaning it and converting it to an integer encoded vector
         question = Vocabulary.clean_text(question)
         question = self.input_vocabulary.words2ints(question)
+        print(question)
 
         # Prepend the currently tracked steps of the conversation history separated by EOS tokens.
         # This allows for deeper dialog context to influence the answer prediction.
@@ -331,8 +337,7 @@ class ChatbotModel(object):
                 #   just like normal weights. Thus the model learns the contextual relationships between the words (the embedding) along with
                 #   the objective function that depends on the words (the decoding).
 
-                encoder_embeddings_matrix = tf.Variable(
-                    tf.random_uniform([self.input_vocabulary.size(), self.model_hparams.encoder_embedding_size], 0, 1),
+                encoder_embeddings_matrix = tf.Variable(self.input_vocabulary.embedding,
                     name="shared_embeddings_matrix" if self.model_hparams.share_embedding else "encoder_embeddings_matrix")
 
                 # As described above, the sequences of word vocabulary indexes in the inputs matrix are converted to sequences of

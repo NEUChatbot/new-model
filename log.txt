@@ -1,6 +1,0 @@
-train stop at 2018-09-12 15:32:48
-train stop at 2018-09-12 15:32:56
-train stop at 2018-09-12 15:33:05
-train stop at 2018-09-12 15:33:13
-
-train stop at 2018-09-12 15:33:22

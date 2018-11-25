@@ -19,12 +19,12 @@ class DataBaseReader(DatasetReader):
         if share_vocab and training_hparams.input_vocab_threshold != training_hparams.output_vocab_threshold:
             raise ValueError("Cannot share vocabulary when the input and output vocab thresholds are different.")
 
-        database_path = path.join(dataset_dir, 'new_data.sqlite')
+        database_path = path.join(dataset_dir, 'xiaohuangji50w_nofenci_clean.sqlite3')
 
         db = sqlite3.connect(database_path)
         size = db.execute('SELECT count (*) AS num FROM conversation').fetchall()[0][0]
         print('open database, {} items altogether'.format(size))
-        input_vocabulary = vocabulary.Vocabulary()
+        input_vocabulary = vocabulary.Vocabulary.load()
         embeddings = input_vocabulary.load_with_embedding()
         ids = range(size)
         databatch = DataBatch_db.DataBatch_db(db, input_vocabulary, input_vocabulary)
